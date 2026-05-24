@@ -13,7 +13,7 @@ import (
 func mnistTrain(net *Network) {
 	t1 := time.Now()
 
-	for epochs := range 5 {
+	for epochs := 0; epochs < 5; epochs++ {
 		trainFile, _ := os.Open("dataset/mnist_train.csv")
 
 		r := csv.NewReader(bufio.NewReader(trainFile))
@@ -39,7 +39,6 @@ func mnistTrain(net *Network) {
 
 			net.Train(inputs, targets)
 
-			fmt.Printf("\n[SkyNet] epochs: %d\n", epochs)
 
 		}
 		trainFile.Close()
