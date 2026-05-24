@@ -84,7 +84,7 @@ func save(net Network) {
 	}
 }
 
-func load(net Network) {
+func load(net *Network) {
 	h, err := os.Open("data/hweights.model")
 	defer h.Close()
 
