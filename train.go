@@ -13,8 +13,12 @@ import (
 func mnistTrain(net *Network) {
 	t1 := time.Now()
 
-	for epochs := 0; epochs < 5; epochs++ {
-		trainFile, _ := os.Open("dataset/mnist_train.csv")
+	for epochs := range 5 {
+		trainFile, err := os.Open("dataset/mnist_train.csv")
+		if err != nil {
+			fmt.Println("[SkyNet] Error opening train file.")
+			return
+		}
 
 		r := csv.NewReader(bufio.NewReader(trainFile))
 		for {
@@ -25,6 +29,10 @@ func mnistTrain(net *Network) {
 
 			inputs := make([]float64, net.inputs)
 			for i := range inputs {
+				if i == 0 {
+					continue
+				}
+
 				x, _ := strconv.ParseFloat(record[i], 64)
 				inputs[i] = (x / 255.0 * 0.99) + 0.01
 			}
@@ -37,7 +45,8 @@ func mnistTrain(net *Network) {
 			x, _ := strconv.Atoi(record[0])
 			targets[x] = 0.99
 
-			net.Train(inputs, targets)
+			lossRate := net.Train(inputs, targets)
+			fmt.Printf("[SkyNet] Epoch: %d, Loss Rate: %f\n", epochs, lossRate)
 
 
 		}
@@ -53,7 +62,11 @@ func mnistTrain(net *Network) {
 func mnistPredict(net *Network) {
 	t1 := time.Now()
 
-	checkFile, _ := os.Open("dataset/mnist_test.csv")
+	checkFile, err := os.Open("dataset/mnist_test.csv")
+	if err != nil {
+		fmt.Println("[SkyNet] Error opening test file.")
+		return
+	}
 	defer checkFile.Close()
 
 	score := 0
@@ -97,7 +110,7 @@ func mnistPredict(net *Network) {
 	elapse := time.Since(t1)
 
 	fmt.Printf("[SkyNet] Time taken to check: %s\n", elapse)
-	fmt.Println("[SkyNet] Score:", score / 100)
+	fmt.Println("[SkyNet] Score:", float64(score))
 
 }
 
