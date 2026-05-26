@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
+	"image"
+	"image/png"
 	"math"
 	"os"
 
@@ -137,6 +141,55 @@ func load(net *Network) error {
 
 }
 
+func predictFromImage(net Network, path string) int {
+	input := dataFromImage(path)
+	output := net.Predict(input)
+
+	fmt.Println(output)
+
+	best := 0
+	highest := 0.0
+
+	for i := range net.outputs {
+		if output.At(i, 0) > highest {
+			best = i
+			highest = output.At(i, 0)
+		}
+	}
+
+	return best
+}
+
+
+func dataFromImage(filePath string) (pixels []float64) {
+	imgFile, err := os.Open(filePath)
+	if err != nil{
+		fmt.Println("Cannot read file: ", err)
+	}
+	defer imgFile.Close()
+
+	img, err := png.Decode(imgFile)
+	if err != nil {
+		fmt.Println("Cannot decode file: ", err)
+	}
+
+	bounds := img.Bounds()
+	gray := image.NewGray(bounds)
+
+	for x := range bounds.Max.X {
+		for y := range bounds.Max.Y {
+			rgba := img.At(x, y)
+			gray.Set(x, y, rgba)
+		}
+	}
+
+	pixels = make([]float64, len(gray.Pix))
+
+	for i := range len(gray.Pix) {
+		pixels[i] = (float64(255-gray.Pix[i]) / 255.0 * 0.999) + 0.001
+	}
+	return
+}
 
 
 func dot(m, n mt.Matrix) mt.Matrix {
@@ -268,3 +321,34 @@ func dirExists(path string) bool {
 	}
 	return false
 }
+
+
+func getImage(filePath string) image.Image {
+	imgFile, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println("Cannot read file: ", err)
+	}
+	defer imgFile.Close()
+
+	img, _, err := image.Decode(imgFile)
+	if err != nil {
+		fmt.Println("Cannot decode file: ", err)
+	}
+	
+	return img
+}
+
+func printImage(img image.Image) {
+	var buf bytes.Buffer
+
+	err := png.Encode(&buf, img)
+	if err != nil {
+		fmt.Println("Cannot encode file: ", err)
+	}
+
+	imgBase64Str := base64.StdEncoding.EncodeToString(buf.Bytes())
+
+	fmt.Printf("\x1b]1337;File=inline=1:%s\a\n", imgBase64Str)
+}
+
+
