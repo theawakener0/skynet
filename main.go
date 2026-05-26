@@ -16,7 +16,10 @@ func main() {
 		save(net)
 
 	case "predict":
-		load(&net)
+		err := load(&net)
+		if err != nil {
+			panic(err)
+		}
 		mnistPredict(&net)
 	default:
 

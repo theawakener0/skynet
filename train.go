@@ -14,6 +14,9 @@ func mnistTrain(net *Network) {
 	t1 := time.Now()
 
 	for epochs := range 5 {
+		epochStart := time.Now()
+		fmt.Printf("[SkyNet] epoch=%d start\n", epochs)
+
 		trainFile, err := os.Open("dataset/mnist_train.csv")
 		if err != nil {
 			fmt.Println("[SkyNet] Error opening train file.")
@@ -21,19 +24,32 @@ func mnistTrain(net *Network) {
 		}
 
 		r := csv.NewReader(bufio.NewReader(trainFile))
+		samples := 0
+		lossSum := 0.0
 		for {
 			record, err := r.Read()
 			if err == io.EOF {
 				break
 			}
+			if err != nil {
+				fmt.Println("[SkyNet] Error reading train file.")
+				trainFile.Close()
+				return
+			}
+			if len(record) != 785 {
+				fmt.Println("[SkyNet] Invalid train record length.")
+				trainFile.Close()
+				return
+			}
 
 			inputs := make([]float64, net.inputs)
 			for i := range inputs {
-				if i == 0 {
-					continue
+				x, err := strconv.ParseFloat(record[i+1], 64)
+				if err != nil {
+					fmt.Println("[SkyNet] Error parsing float.")
+					trainFile.Close()
+					return
 				}
-
-				x, _ := strconv.ParseFloat(record[i], 64)
 				inputs[i] = (x / 255.0 * 0.99) + 0.01
 			}
 
@@ -42,20 +58,40 @@ func mnistTrain(net *Network) {
 				targets[i] = 0.01
 			}
 
-			x, _ := strconv.Atoi(record[0])
-			targets[x] = 0.99
+			label, err := strconv.Atoi(record[0])
+			if err != nil {
+				fmt.Println("[SkyNet] Error parsing label.")
+				trainFile.Close()
+				return
+			}
+			if label < 0 || label >= len(targets) {
+				fmt.Println("[SkyNet] Invalid label value.")
+				trainFile.Close()
+				return
+			}
+			targets[label] = 0.99
 
 			lossRate := net.Train(inputs, targets)
-			fmt.Printf("[SkyNet] Epoch: %d, Loss Rate: %f\n", epochs, lossRate)
+			lossSum += lossRate
+			samples++
+
+			if samples%1000 == 0 {
+				fmt.Printf("[SkyNet] epoch=%d sample=%d avg_loss=%f elapsed=%s\n", epochs, samples, lossSum/1000.0, time.Since(epochStart))
+				lossSum = 0
+			}
 
 
 		}
 		trainFile.Close()
+		if rem := samples % 1000; rem != 0 {
+			fmt.Printf("[SkyNet] epoch=%d sample=%d avg_loss=%f elapsed=%s\n", epochs, samples, lossSum/float64(rem), time.Since(epochStart))
+		}
+		fmt.Printf("[SkyNet] epoch=%d done samples=%d elapsed=%s\n", epochs, samples, time.Since(epochStart))
 
 	}
 
 	elapse := time.Since(t1)
-	fmt.Printf("\n[SkyNet] Time taken to train: %s\n", elapse)
+	fmt.Printf("[SkyNet] Time taken to train: %s\n", elapse)
 
 }
 
@@ -72,19 +108,28 @@ func mnistPredict(net *Network) {
 	score := 0
 
 	r := csv.NewReader(bufio.NewReader(checkFile))
+	total := 0
 	for {
 		record , err := r.Read()
 		if err == io.EOF {
 			break
 		}
+		if err != nil {
+			fmt.Println("[SkyNet] Error reading test file.")
+			return
+		}
+		if len(record) != 785 {
+			fmt.Println("[SkyNet] Invalid test record length.")
+			return
+		}
 
 		inputs := make([]float64, net.inputs)
 		for i := range inputs {
-			if i == 0 {
-				inputs[i] = 1.0
+			x, err := strconv.ParseFloat(record[i+1], 64)
+			if err != nil {
+				fmt.Println("[SkyNet] Error parsing test pixel.")
+				return
 			}
-
-			x, _ := strconv.ParseFloat(record[i], 64)
 			inputs[i] = (x / 255.0 * 0.99) + 0.01
 		}
 
@@ -104,13 +149,20 @@ func mnistPredict(net *Network) {
 		if best == target {
 			score++
 		}
+		total++
+		if total%1000 == 0 {
+			fmt.Printf("[SkyNet] predict sample=%d running_accuracy=%f elapsed=%s\n", total, float64(score)/float64(total), time.Since(t1))
+		}
 
 	}
 
 	elapse := time.Since(t1)
 
 	fmt.Printf("[SkyNet] Time taken to check: %s\n", elapse)
-	fmt.Println("[SkyNet] Score:", float64(score))
+	if total == 0 {
+		fmt.Println("[SkyNet] Accuracy: 0")
+		return
+	}
+	fmt.Println("[SkyNet] Accuracy:", float64(score)/float64(total))
 
 }
-

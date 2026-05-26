@@ -104,11 +104,11 @@ func save(net Network) {
 	}
 }
 
-func load(net *Network) {
+func load(net *Network) error {
 	h, err := os.Open("data/hweights.model")
 	if err != nil {
 		fmt.Println("[SkyNet] Error loading hidden weights.")
-		return
+		return err
 	}
 	defer h.Close()
 
@@ -116,13 +116,13 @@ func load(net *Network) {
 	_, err = net.hiddenWeights.UnmarshalBinaryFrom(h)
 	if err != nil {
 		fmt.Println("[SkyNet] Error loading hidden weights.")
-		return
+		return err
 	}
 
 	o, err := os.Open("data/oweights.model")
 	if err != nil {
 		fmt.Println("[SkyNet] Error loading output weights.")
-		return
+		return err
 	}
 	defer o.Close()
 
@@ -130,8 +130,10 @@ func load(net *Network) {
 	_, err = net.outputWeights.UnmarshalBinaryFrom(o)
 	if err != nil {
 		fmt.Println("[SkyNet] Error loading output weights.")
-		return
+		return err
 	}
+
+	return nil
 
 }
 
@@ -266,4 +268,3 @@ func dirExists(path string) bool {
 	}
 	return false
 }
-
