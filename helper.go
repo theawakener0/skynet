@@ -48,7 +48,7 @@ func (net Network) Predict(inputData []float64) mt.Matrix {
 	return finalOutputs
 }
 
-func (net *Network) Train(inputData, targetData []float64) {
+func (net *Network) Train(inputData, targetData []float64) float64 {
 	inputs := mt.NewDense(len(inputData), 1, inputData)
 
 	hiddenInputs := dot(net.hiddenWeights, inputs)
@@ -60,12 +60,14 @@ func (net *Network) Train(inputData, targetData []float64) {
 	targets := mt.NewDense(len(targetData), 1, targetData)
 	
 	outputErrors:= sub(targets, finalOutputs)
+	lossRate := calcMSE(outputErrors)
 	hiddenErrors := dot(net.outputWeights.T(), outputErrors)
 
 	net.outputWeights = add(net.outputWeights, scale(net.learningRate, dot(mul(outputErrors, sigmoidPrime(finalOutputs)), hiddenOutputs.T()))).(*mt.Dense)
 
 	net.hiddenWeights = add(net.hiddenWeights, scale(net.learningRate, dot(mul(hiddenErrors, sigmoidPrime(hiddenOutputs)), inputs.T()))).(*mt.Dense)
 
+	return lossRate
 }
 
 func save(net Network) {
@@ -106,11 +108,11 @@ func save(net Network) {
 	}
 }
 
-func load(net *Network) {
+func load(net *Network) error {
 	h, err := os.Open("data/hweights.model")
 	if err != nil {
 		fmt.Println("[SkyNet] Error loading hidden weights.")
-		return
+		return err
 	}
 
 	defer h.Close()
@@ -120,13 +122,13 @@ func load(net *Network) {
 	_, err = net.hiddenWeights.UnmarshalBinaryFrom(h)
 	if err != nil {
 		fmt.Println("[SkyNet] Error loading hidden weights.")
-		return
+		return err
 	}
 
 	o, err := os.Open("data/oweights.model")
 	if err != nil {
 		fmt.Println("[SkyNet] Error loading output weights.")
-		return
+		return err
 	}
 
 	defer o.Close()
@@ -136,8 +138,10 @@ func load(net *Network) {
 	_, err = net.outputWeights.UnmarshalBinaryFrom(o)
 	if err != nil {
 		fmt.Println("[SkyNet] Error loading output weights.")
-		return
+		return err
 	}
+
+	return nil
 }
 
 
