@@ -17,7 +17,7 @@ func mnistTrain(net *Network) {
                 epochStart := time.Now()
                 fmt.Printf("[SkyNet] epoch=%d start\n", epochs)
 
-                trainFile, err := os.Open("dataset/mnist_train.csv")
+                trainFile, err := os.Open("dataset/fashion_train.csv")
                 if err != nil {
                         fmt.Println("[SkyNet] Error opening train file.")
                         return
@@ -98,7 +98,7 @@ func mnistTrain(net *Network) {
 func mnistPredict(net *Network) {
         t1 := time.Now()
 
-        checkFile, err := os.Open("dataset/mnist_test.csv")
+        checkFile, err := os.Open("dataset/fashion_test.csv")
         if err != nil {
                 fmt.Println("[SkyNet] Error opening test file.")
                 return
